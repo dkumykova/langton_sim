@@ -2045,17 +2045,85 @@ exports.write = function (buffer, value, offset, isLE, mLen, nBytes) {
 const glslify = require( 'glslify' )
 const toy     = require( 'gl-toy' )
 
-const shader = glslify(["#ifdef GL_ES\n    precision mediump float;\n#define GLSLIFY 1\n\n    #endif\n    \n    uniform mediump float time;\n    uniform mediump vec2 resolution;\n    \n    void main() {\n      gl_FragColor = vec4( \n        gl_FragCoord.x / resolution.x, \n        gl_FragCoord.y / resolution.y, \n        mod( time/100., 1. ), \n        1.0 \n      );\n    }"])
+const shader = glslify(["#ifdef GL_ES\nprecision mediump float;\n#define GLSLIFY 1\n#endif\n\nuniform vec2 resolution;\nuniform vec2 mouse;\nuniform float time;\nuniform mediump float speed;\nuniform mediump float red;\nuniform mediump float blue;\nuniform mediump float green;\nuniform mediump float scale;\n\nvec2 random2( vec2 p ) {\n    return fract(sin(vec2(dot(p,vec2(127.1,311.7)),dot(p,vec2(269.5,183.3))))*43758.5453);\n}\n\nfloat rand(vec2 c){\n\treturn fract(sin(dot(c.xy ,vec2(12.9898,78.233))) * 43758.5453);\n}\n\nvoid main() {\n    vec2 p = gl_FragCoord.xy/resolution.xy;\n    p.x *= resolution.x/resolution.y;\n    vec3 color = vec3(0.);\n\n    // Scale\n    p *= scale;\n\n    // Tile the space\n    vec2 i_p = floor(p);\n    vec2 f_p = fract(p);\n\n    float m_dist = 1.;  // minimun distance\n\n    for (int y= -1; y <= 1; y++) {\n        for (int x= -1; x <= 1; x++) {\n            // Neighbor place in the grid\n            vec2 neighbor = vec2(float(x),float(y));\n\n            // Random position from current + neighbor place in the grid\n            vec2 point = random2(i_p + neighbor);\n\n\t\t\t// Animate the point\n            point = 0.5 + 0.5*sin(time/speed + 6.2831*point);\n\n\t\t\t// Vector between the pixel and the point\n            vec2 diff = neighbor + point - f_p;\n\n            // Distance to the point\n            float dist = length(diff);\n\n            // Keep the closer distance\n            m_dist = min(m_dist, dist);\n            //m_dist = smoothstep(dist, diff, m_dist);\n        }\n    }\n\n    // Draw the min distance (distance field)\n    color += m_dist*m_dist;    \n\n    // Draw cell center\n   // color += 1.-step(.02, m_dist);\n\n    // Draw grid\n    //color.r += step(.98, f_p.x) + step(.98, f_p.y);\n\n    // Show isolines\n    // color -= step(.7,abs(sin(27.0*m_dist)))*.5;\n\n    gl_FragColor = vec4(vec3(color.x*red, color.y*blue, color.z*green),1.0);\n}"])
+
+controls = function() {
+  this.speed = 35;
+  this.red = 1;
+  this.blue = 1;
+  this.green = 1;
+  this.scale = 5;
+  this.reload = function(){location.reload();}
+
+};
 
 let count = 0
+let ui = new controls();
+let mouseX, mouseY
+window.onload = function() {
+  //ui = new controls();
+      var gui = new dat.GUI();
+      gui.add(ui, 'speed', 1, 50);
+      gui.add(ui, 'red', 0, 1);
+      gui.add(ui, 'blue', 0, 1);
+      gui.add(ui, 'green', 0, 1);
+      gui.add(ui, 'scale', 1, 20);
+      gui.add(ui, 'reload');
+
+  // document.getElementById("interaction").addEventListener("mousemove", function(event) {
+  //   mouseMoved(event);
+  // });
+}
+
+
 toy( shader, (gl, shader) => {
   // this function runs once per frame
   shader.uniforms.resolution = [ gl.drawingBufferWidth, gl.drawingBufferHeight ]
   shader.uniforms.time = count++
+  shader.uniforms.speed = ui.speed;
+  shader.uniforms.red = ui.red;
+  shader.uniforms.blue = ui.blue;
+  shader.uniforms.green = ui.green;
+  shader.uniforms.scale = ui.scale;
+})
+
+mouseMoved = function(event) {
+  console.log('mouse being called');
+  var x = event.clientX;
+  var y = event.clientY;
+  var coor = "X coords: " + x + ", Y coords: " + y;
+  console.log(coor);
+}
+
+mouseClicked = function() {
+  console.log('i have been clicked');
+  
+}
+
+var mouse = require('mouse-event')
+//pressed = mousePressed(element, [preventDefault])
+ 
+window.addEventListener('mousemove', function(ev) {
+  mouseX = mouse.x(ev);
+  mouseY = mouse.y(ev);
+  //console.log('element' + mouse.element(ev))
+  console.log('x' + mouseX)
+  console.log('y' + mouseY)
+  // document.body.innerHTML =
+  //   '<p>Buttons: ' + mouse.buttons(ev) + 
+  //   ' x:' + mouse.x(ev) + 
+  //   ' y:' + mouse.y(ev) + '</p>'
+})
+
+window.addEventListener('click', function(ev){
+  console.log('mouse has been clicked')
 })
 
 
-},{"gl-toy":27,"glslify":40}],5:[function(require,module,exports){
+
+
+
+},{"gl-toy":27,"glslify":40,"mouse-event":43}],5:[function(require,module,exports){
 'use strict'
 
 var weakMap      = typeof WeakMap === 'undefined' ? require('weak-map') : WeakMap
@@ -2086,7 +2154,7 @@ function createABigTriangle(gl) {
 
 module.exports = createABigTriangle
 
-},{"gl-buffer":15,"gl-vao":31,"weak-map":51}],6:[function(require,module,exports){
+},{"gl-buffer":15,"gl-vao":31,"weak-map":52}],6:[function(require,module,exports){
 var padLeft = require('pad-left')
 
 module.exports = addLineNumbers
@@ -2104,7 +2172,7 @@ function addLineNumbers (string, start, delim) {
   }).join('\n')
 }
 
-},{"pad-left":45}],7:[function(require,module,exports){
+},{"pad-left":46}],7:[function(require,module,exports){
 module.exports = function _atob(str) {
   return atob(str)
 }
@@ -2836,7 +2904,7 @@ function generateCWiseOp(proc, typesig) {
 }
 module.exports = generateCWiseOp
 
-},{"uniq":50}],12:[function(require,module,exports){
+},{"uniq":51}],12:[function(require,module,exports){
 "use strict"
 
 // The function below is called when constructing a cwise function object, and does the following:
@@ -3164,7 +3232,7 @@ function createBuffer(gl, data, type, usage) {
 
 module.exports = createBuffer
 
-},{"ndarray":44,"ndarray-ops":43,"typedarray-pool":49}],16:[function(require,module,exports){
+},{"ndarray":45,"ndarray-ops":44,"typedarray-pool":50}],16:[function(require,module,exports){
 module.exports = {
   0: 'NONE',
   1: 'ONE',
@@ -3504,7 +3572,7 @@ function createContext(canvas, opts, render) {
   }
 }
 
-},{"raf-component":46}],19:[function(require,module,exports){
+},{"raf-component":47}],19:[function(require,module,exports){
 
 var sprintf = require('sprintf-js').sprintf;
 var glConstants = require('gl-constants/lookup');
@@ -3559,7 +3627,7 @@ function formatCompilerError(errLog, src, type) {
 }
 
 
-},{"add-line-numbers":6,"gl-constants/lookup":17,"glsl-shader-name":32,"sprintf-js":48}],20:[function(require,module,exports){
+},{"add-line-numbers":6,"gl-constants/lookup":17,"glsl-shader-name":32,"sprintf-js":49}],20:[function(require,module,exports){
 'use strict'
 
 var createUniformWrapper   = require('./lib/create-uniforms')
@@ -4574,7 +4642,7 @@ function createProgram(gl, vref, fref, attribs, locations) {
   return getCache(gl).getProgram(vref, fref, attribs, locations)
 }
 
-},{"./GLError":21,"gl-format-compiler-error":19,"weakmap-shim":54}],27:[function(require,module,exports){
+},{"./GLError":21,"gl-format-compiler-error":19,"weakmap-shim":55}],27:[function(require,module,exports){
 'use strict';
 
 var triangle = require('a-big-triangle');
@@ -5751,6 +5819,68 @@ function isSlowBuffer (obj) {
 }
 
 },{}],43:[function(require,module,exports){
+'use strict'
+
+function mouseButtons(ev) {
+  if(typeof ev === 'object') {
+    if('buttons' in ev) {
+      return ev.buttons
+    } else if('which' in ev) {
+      var b = ev.which
+      if(b === 2) {
+        return 4
+      } else if(b === 3) {
+        return 2
+      } else if(b > 0) {
+        return 1<<(b-1)
+      }
+    } else if('button' in ev) {
+      var b = ev.button
+      if(b === 1) {
+        return 4
+      } else if(b === 2) {
+        return 2
+      } else if(b >= 0) {
+        return 1<<b
+      }
+    }
+  }
+  return 0
+}
+exports.buttons = mouseButtons
+
+function mouseElement(ev) {
+  return ev.target || ev.srcElement || window
+}
+exports.element = mouseElement
+
+function mouseRelativeX(ev) {
+  if(typeof ev === 'object') {
+    if('offsetX' in ev) {
+      return ev.offsetX
+    }
+    var target = mouseElement(ev)
+    var bounds = target.getBoundingClientRect()
+    return ev.clientX - bounds.left
+  }
+  return 0
+}
+exports.x = mouseRelativeX
+
+function mouseRelativeY(ev) {
+  if(typeof ev === 'object') {
+    if('offsetY' in ev) {
+      return ev.offsetY
+    }
+    var target = mouseElement(ev)
+    var bounds = target.getBoundingClientRect()
+    return ev.clientY - bounds.top
+  }
+  return 0
+}
+exports.y = mouseRelativeY
+
+},{}],44:[function(require,module,exports){
 "use strict"
 
 var compile = require("cwise-compiler")
@@ -6213,7 +6343,7 @@ exports.equals = compile({
 
 
 
-},{"cwise-compiler":10}],44:[function(require,module,exports){
+},{"cwise-compiler":10}],45:[function(require,module,exports){
 var iota = require("iota-array")
 var isBuffer = require("is-buffer")
 
@@ -6564,7 +6694,7 @@ function wrappedNDArrayCtor(data, shape, stride, offset) {
 
 module.exports = wrappedNDArrayCtor
 
-},{"iota-array":41,"is-buffer":42}],45:[function(require,module,exports){
+},{"iota-array":41,"is-buffer":42}],46:[function(require,module,exports){
 /*!
  * pad-left <https://github.com/jonschlinkert/pad-left>
  *
@@ -6580,7 +6710,7 @@ module.exports = function padLeft(str, num, ch) {
   ch = typeof ch !== 'undefined' ? (ch + '') : ' ';
   return repeat(ch, num) + str;
 };
-},{"repeat-string":47}],46:[function(require,module,exports){
+},{"repeat-string":48}],47:[function(require,module,exports){
 /**
  * Expose `requestAnimationFrame()`.
  */
@@ -6620,7 +6750,7 @@ exports.cancel = function(id){
   cancel.call(window, id);
 };
 
-},{}],47:[function(require,module,exports){
+},{}],48:[function(require,module,exports){
 /*!
  * repeat-string <https://github.com/jonschlinkert/repeat-string>
  *
@@ -6692,7 +6822,7 @@ function repeat(str, num) {
   return res;
 }
 
-},{}],48:[function(require,module,exports){
+},{}],49:[function(require,module,exports){
 /* global window, exports, define */
 
 !function() {
@@ -6925,7 +7055,7 @@ function repeat(str, num) {
     /* eslint-enable quote-props */
 }(); // eslint-disable-line
 
-},{}],49:[function(require,module,exports){
+},{}],50:[function(require,module,exports){
 (function (global){
 'use strict'
 
@@ -7180,7 +7310,7 @@ exports.clearCache = function clearCache() {
 }
 
 }).call(this,typeof global !== "undefined" ? global : typeof self !== "undefined" ? self : typeof window !== "undefined" ? window : {})
-},{"bit-twiddle":8,"buffer":2,"dup":13}],50:[function(require,module,exports){
+},{"bit-twiddle":8,"buffer":2,"dup":13}],51:[function(require,module,exports){
 "use strict"
 
 function unique_pred(list, compare) {
@@ -7239,7 +7369,7 @@ function unique(list, compare, sorted) {
 
 module.exports = unique
 
-},{}],51:[function(require,module,exports){
+},{}],52:[function(require,module,exports){
 // Copyright (C) 2011 Google Inc.
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
@@ -7926,7 +8056,7 @@ module.exports = unique
   }
 })();
 
-},{}],52:[function(require,module,exports){
+},{}],53:[function(require,module,exports){
 var hiddenStore = require('./hidden-store.js');
 
 module.exports = createStore;
@@ -7947,7 +8077,7 @@ function createStore() {
     };
 }
 
-},{"./hidden-store.js":53}],53:[function(require,module,exports){
+},{"./hidden-store.js":54}],54:[function(require,module,exports){
 module.exports = hiddenStore;
 
 function hiddenStore(obj, key) {
@@ -7965,7 +8095,7 @@ function hiddenStore(obj, key) {
     return store;
 }
 
-},{}],54:[function(require,module,exports){
+},{}],55:[function(require,module,exports){
 // Original - @Gozola.
 // https://gist.github.com/Gozala/1269991
 // This is a reimplemented version (with a few bug fixes).
@@ -7996,4 +8126,4 @@ function weakMap() {
     }
 }
 
-},{"./create-store.js":52}]},{},[4]);
+},{"./create-store.js":53}]},{},[4]);
