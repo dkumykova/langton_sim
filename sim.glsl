@@ -40,7 +40,7 @@ void main() {
         
     } else if(self == 0.2 && cell == 1){ //i am ant and cell is white
 
-        gl_FragColor = vec4( vec3(0.0, 0.0, 0.0), 1.0 );
+        gl_FragColor = vec4( vec3(0.0, 0.0, newDir), 1.0 );
 
     } else {
 
@@ -63,20 +63,11 @@ void main() {
         float rightAnt = getGreen(1,0);
         float rightDir = getBlue(1,0);
 
-        if((topAnt == 0.2 && 0.0 < topDir && topDir < 0.25) || (leftAnt == 0.2 && 0.75 < leftDir && leftDir < 1.0) || (bottomAnt == 0.2 && 0.5 < bottomDir && bottomDir < 0.75) ||
-          (rightAnt == 0.2 && 0.25 < rightDir && rightDir < 0.5)){ //above square is white ant and direction is down
+        if( (leftAnt == 0.2 && 0.75 < leftDir && leftDir < 1.0) || (bottomAnt == 0.2 && 0.5 < bottomDir && bottomDir < 0.75) ||
+          (rightAnt == 0.2 && 0.25 < rightDir && rightDir < 0.5) || (topAnt == 0.2 && 0.0 < topDir && topDir < 0.25)){ //above square is white ant and direction is down
             gl_FragColor = vec4(cell, 0.2, newDir, 1.);
         }
-        // }
-        // else if(leftAnt == 0.2 && 0.75 < leftDir && leftDir < 1.0){ 
-        //   gl_FragColor = vec4(cell, 0.2, newDir, 1.);
-        // }
-        
-        // else if(bottomAnt == 0.2 && 0.5 < bottomDir && bottomDir < 0.75){ 
-        //   gl_FragColor = vec4(cell, 0.2, newDir, 1.);
-        // }
-        // else if(rightAnt == 0.2 && 0.25 < rightDir && rightDir < 0.5){ 
-        //     gl_FragColor = vec4(cell, 0.2, newDir, 1.);
+  
         else {
           
           float current = float( getRed(0, 0) );

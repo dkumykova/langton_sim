@@ -58,6 +58,8 @@ function init( gl ) {
   //add to ants array
   //ants.push(ant1, ant2)
   pokeAnt(w/2, h/2, 255, state[0].color[0])
+  pokeAnt((w/2)+5, (h/2)-5, 255, state[0].color[0])
+  pokeAnt((w/2)-5, (h/2)-5, 255, state[0].color[0])
   //setInitialState( w,h, state[0].color[0] )
   initialized = true
 }
@@ -104,23 +106,20 @@ toy( draw, (gl, shader) => {
   //shader.uniforms.ants = ants
 })
 
-// var mouse = require('mouse-event')
+var mouse = require('mouse-event')
  
-// window.addEventListener('mousemove', function(ev) {
- 
-//   //console.log('element' + mouse.element(ev))
-//   console.log('x' + mouse.x(ev))
-//   console.log('y' + mouse.y(ev))
-//   mouseX = mouse.x(ev);
-//   mouseY = mouse.y(ev);
+let x,y
+window.addEventListener( 'mousemove', e => {
+  x = e.pageX
+  y = e.pageY
+})
 
-// })
-
-// window.addEventListener('click', function(ev){
-//   console.log('mouse has been clicked')
+window.addEventListener('click', function(ev){
+  console.log('mouse has been clicked')
+  pokeAnt(x, y, 255, state[0].color[0])
   
-//   click = true;
-// })
+  click = true;
+})
 
 
 

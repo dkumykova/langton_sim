@@ -6,10 +6,11 @@
   "dependencies": {
     "a-big-triangle": "^1.0.3",
     "browserify": "^16.5.0",
-    "gl-shader": "^4.2.1",
     "gl-fbo": "^2.0.5",
+    "gl-shader": "^4.2.1",
     "gl-toy": "^2.0.3",
-    "glslify": "^7.0.0"
+    "glslify": "^7.0.0",
+    "mouse-event": "^1.0.5"
   },
   "devDependencies": {},
   "scripts": {
