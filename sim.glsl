@@ -63,6 +63,9 @@ void main() {
         float rightAnt = getGreen(1,0);
         float rightDir = getBlue(1,0);
 
+
+        //need to randomize order things are checked
+
         if( (leftAnt == 0.2 && 0.75 < leftDir && leftDir < 1.0) || (bottomAnt == 0.2 && 0.5 < bottomDir && bottomDir < 0.75) ||
           (rightAnt == 0.2 && 0.25 < rightDir && rightDir < 0.5) || (topAnt == 0.2 && 0.0 < topDir && topDir < 0.25)){ //above square is white ant and direction is down
             gl_FragColor = vec4(cell, 0.2, newDir, 1.);
