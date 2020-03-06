@@ -3,8 +3,7 @@ precision mediump float;
 #endif
 
 uniform vec2 resolution;
-uniform vec2 whiteDirs[4];
-uniform vec2 blackDirs[4];
+uniform float newDir;
 
 // simulation texture state, swapped each frame
 uniform sampler2D state;
@@ -16,53 +15,76 @@ int getRed(int x, int y) {
   );
 }
 
-float getGreen(int x, int y) { //if equals 2.04, then ant
+float getGreen(int x, int y) { //if equals 0.2, then ant
   return float( 
     texture2D( state, ( gl_FragCoord.xy + vec2(x, y) ) / resolution ).g 
   );
 }
 
-int blackIndex = 0;
-int whiteIndex = 0;
-
- 
+float getBlue(int x, int y) { 
+  return float( 
+    texture2D( state, ( gl_FragCoord.xy + vec2(x, y) ) / resolution ).b 
+  );
+}
 
 void main() {
 
     float self = getGreen(0, 0);
     int cell = getRed(0, 0); //check if square ant is on is filled or not
     
-    if(self == 2.04 && cell == 1){ //i am an ant! and the cell i'm on is alive!
+    if(self == 0.2 && cell == 0 ){ //i am an ant! and the cell is black
         
-       // whiteDir()
-        //change self value to be black, and also have no ant
-        //move right + change current cell value to black
-        gl_FragColor = vec4( vec3( 0.0 ), 1.0 );
-    } else if(self == 2.04 && cell == 0){ //i am ant and cell is dead
-        //move left + change current cell value to white
-        gl_FragColor = vec4( 1. );
+      
+        //change self value to be white, and also have no ant
+        gl_FragColor = vec4( 1., 1., newDir, 1. );
+        
+    } else if(self == 0.2 && cell == 1){ //i am ant and cell is white
+
+        gl_FragColor = vec4( vec3(0.0, 0.0, 0.0), 1.0 );
+
     } else {
 
         //am i the new ant? change green value to reflect that 
         //check all 4 neighbors + their cell colors
 
-        int nTopCell = getRed(0,1);
-        float nTopAnt = getGreen(0,1);
+        int topCell = getRed(0,1);
+        float topAnt = getGreen(0,1);
+        float topDir = getBlue(0,1);
 
-        int nLeftCell = getRed(-1,0);
-        float nLeftAnt = getGreen(-1,0);
+        int leftCell = getRed(-1,0);
+        float leftAnt = getGreen(-1,0);
+        float leftDir = getBlue(-1,0);
 
-        int nBottomCell = getRed(0,-1);
-        float nBottomAnt = getGreen(0,-1);
+        int bottomCell = getRed(0,-1);
+        float bottomAnt = getGreen(0,-1);
+        float bottomDir = getBlue(0,-1);
 
-        int nRightCell = getRed(1,0);
-        float nRightAnt = getGreen(1,0);
+        int rightCell = getRed(1,0);
+        float rightAnt = getGreen(1,0);
+        float rightDir = getBlue(1,0);
 
+        if((topAnt == 0.2 && 0.0 < topDir && topDir < 0.25) || (leftAnt == 0.2 && 0.75 < leftDir && leftDir < 1.0) || (bottomAnt == 0.2 && 0.5 < bottomDir && bottomDir < 0.75) ||
+          (rightAnt == 0.2 && 0.25 < rightDir && rightDir < 0.5)){ //above square is white ant and direction is down
+            gl_FragColor = vec4(cell, 0.2, newDir, 1.);
+        }
+        // }
+        // else if(leftAnt == 0.2 && 0.75 < leftDir && leftDir < 1.0){ 
+        //   gl_FragColor = vec4(cell, 0.2, newDir, 1.);
+        // }
         
+        // else if(bottomAnt == 0.2 && 0.5 < bottomDir && bottomDir < 0.75){ 
+        //   gl_FragColor = vec4(cell, 0.2, newDir, 1.);
+        // }
+        // else if(rightAnt == 0.2 && 0.25 < rightDir && rightDir < 0.5){ 
+        //     gl_FragColor = vec4(cell, 0.2, newDir, 1.);
+        else {
+          
+          float current = float( getRed(0, 0) );
+          gl_FragColor = vec4( vec3( current ), 1.0 );
+
+        }
 
 
-        float current = float( getRed(0, 0) );
-        gl_FragColor = vec4( vec3( current ), 1.0 );
     }
 
     //float current = float( getGreen(0, 0) );

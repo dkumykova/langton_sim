@@ -14,27 +14,20 @@ let   initialized = false,
 const state = []
 
 
-function poke( x, y, value, texture ) {  
-  const gl = texture.gl
-  texture.bind()
-  
-  gl.texSubImage2D( 
-    gl.TEXTURE_2D, 0, 
-    x, y, 1, 1,
-    gl.RGBA, gl.UNSIGNED_BYTE,
-    new Uint8Array([ value,value,value, 255 ])
-  )
+function getRandomFloat(max) {
+  return Math.random() * Math.floor(max);
 }
+
 
 function pokeAnt( x, y, value, texture ) {  
   const gl = texture.gl
   texture.bind()
-  
+
   gl.texSubImage2D( 
     gl.TEXTURE_2D, 0, 
     x, y, 1, 1,
     gl.RGBA, gl.UNSIGNED_BYTE,
-    new Uint8Array([ value,125,value, 255 ])
+    new Uint8Array([ value,51,getRandomFloat(255), 255 ]) //store direction in blue value, ifAnt in green, ifAlive in red
   )
 }
 
@@ -64,23 +57,25 @@ function init( gl ) {
   //create starting ants
   //add to ants array
   //ants.push(ant1, ant2)
-  
-  setInitialState( w,h, state[0].color[0] )
+  pokeAnt(w/2, h/2, 255, state[0].color[0])
+  //setInitialState( w,h, state[0].color[0] )
   initialized = true
 }
 
 let current = 0
+var newDir = 0
 function tick( gl ) {
   const prevState = state[current]
   const curState = state[current ^= 1]
  
   curState.bind() // fbo
   sim.bind()      // shader
+
+  newDir = getRandomFloat(1)
   
   sim.uniforms.resolution = [ gl.drawingBufferWidth, gl.drawingBufferHeight ]
   sim.uniforms.state = prevState.color[0].bind()
-  sim.uniforms.whiteDirs = whiteDirs
-  sim.uniforms.blackDirs = blackDirs
+  sim.uniforms.newDir = newDir
   
   
   sim.attributes.a_position.location = 0
