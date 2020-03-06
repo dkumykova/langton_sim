@@ -81,7 +81,7 @@ void main() {
 
     }
 
-    //float current = float( getGreen(0, 0) );
+    //float current = float( getRed(0, 0) );
     //gl_FragColor = vec4( vec3( current ), 1.0 );
 
 }

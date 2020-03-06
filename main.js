@@ -79,15 +79,8 @@ function tick( gl ) {
   sim.uniforms.state = prevState.color[0].bind()
   sim.uniforms.newDir = newDir
   
-  
   sim.attributes.a_position.location = 0
 
-  //apply langton ants rules here
-  //ants.forEach((el)=>{
-
-    //if current cell value is white, change ant 
-  //})
-  
   fillScreen( gl )
 }
 
@@ -103,7 +96,7 @@ toy( draw, (gl, shader) => {
   shader.uniforms.resolution = [ gl.drawingBufferWidth, gl.drawingBufferHeight ]
   shader.uniforms.uSampler = state[ 0 ].color[0].bind()
   shader.uniforms.time = count++
-  //shader.uniforms.ants = ants
+
 })
 
 var mouse = require('mouse-event')
@@ -112,11 +105,18 @@ let x,y
 window.addEventListener( 'mousemove', e => {
   x = e.pageX
   y = e.pageY
+  console.log(x)
+  console.log(y)
 })
 
 window.addEventListener('click', function(ev){
   console.log('mouse has been clicked')
-  pokeAnt(x, y, 255, state[0].color[0])
+  // if(y < gl.drawingBufferHeight/2){
+  //   y = gl.drawingBufferHeight/2
+  // } else {
+  //   y = y + gl.drawingBufferHeight/2
+  // }
+  pokeAnt(x, y , 255, state[0].color[0])
   
   click = true;
 })
