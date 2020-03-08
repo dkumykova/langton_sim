@@ -2050,34 +2050,45 @@ const createShader = require('gl-shader')
 
 const draw = glslify(["#ifdef GL_ES\nprecision mediump float;\n#define GLSLIFY 1\n#endif\n\nuniform sampler2D uSampler;\nuniform vec2 resolution;\n\nvoid main() {\n  gl_FragColor = vec4( texture2D( uSampler, gl_FragCoord.xy / resolution ).rgb, 1. );\n}"])
       vert = glslify(["#define GLSLIFY 1\nattribute vec2 a_position;\n\nvoid main() {\n  gl_Position = vec4( a_position, 0., 1. );\n}"]),
-      gol  = glslify(["#ifdef GL_ES\nprecision mediump float;\n#define GLSLIFY 1\n#endif\n\nuniform vec2 resolution;\n\n// simulation texture state, swapped each frame\nuniform sampler2D state;\n\n// look up individual cell values \nint get(int x, int y) {\n  return int( \n    texture2D( state, ( gl_FragCoord.xy + vec2(x, y) ) / resolution ).r \n  );\n}\n\nvoid main() {\n  // get sum of all surrounding nine neighbors\n  int sum = get(-1, -1) +\n            get(-1,  0) +\n            get(-1,  1) +\n            get( 0, -1) +\n            get( 0,  1) +\n            get( 1, -1) +\n            get( 1,  0) +\n            get( 1,  1);\n  \n  if (sum == 3) {\n    // ideal # of neighbors... if cell is living, stay alive, if it is dead, come to life!\n    gl_FragColor = vec4( 1. );\n  } else if (sum == 2) {\n    // maintain current state\n    float current = float( get(0, 0) );\n    gl_FragColor = vec4( vec3( current ), 1.0 );\n  } else {\n    // over-population or lonliness... cell dies\n    gl_FragColor = vec4( vec3( 0.0 ), 1.0 );\n  }\n  //gl_FragColor = vec4(0.,1.,0.,1.);\n}"])
+      gol  = glslify(["#ifdef GL_ES\nprecision mediump float;\n#define GLSLIFY 1\n#endif\n\nuniform vec2 resolution;\nuniform float newDir;\n\n// simulation texture state, swapped each frame\nuniform sampler2D state;\n\n// look up individual cell values \nint getRed(int x, int y) {\n  return int( \n    texture2D( state, ( gl_FragCoord.xy + vec2(x, y) ) / resolution ).r \n  );\n}\n\nfloat getGreen(int x, int y) { //if equals 0.2, then ant\n  return float( \n    texture2D( state, ( gl_FragCoord.xy + vec2(x, y) ) / resolution ).g \n  );\n}\n\nfloat getBlue(int x, int y) { \n  return float( \n    texture2D( state, ( gl_FragCoord.xy + vec2(x, y) ) / resolution ).b \n  );\n}\n\nvoid main() {\n\n    float self = getGreen(0, 0);\n    int cell = getRed(0, 0); //check if square ant is on is filled or not\n    \n    if(self == 0.2 && cell == 0 ){ //i am an ant! and the cell is black\n        \n      \n        //change self value to be white, and also have no ant\n        gl_FragColor = vec4( 1., 1., newDir, 1. );\n        \n    } else if(self == 0.2 && cell == 1){ //i am ant and cell is white\n\n        gl_FragColor = vec4( vec3(0.0, 0.0, newDir), 1.0 );\n\n    } else {\n\n        //am i the new ant? change green value to reflect that \n        //check all 4 neighbors + their cell colors\n\n        int topCell = getRed(0,1);\n        float topAnt = getGreen(0,1);\n        float topDir = getBlue(0,1);\n\n        int leftCell = getRed(-1,0);\n        float leftAnt = getGreen(-1,0);\n        float leftDir = getBlue(-1,0);\n\n        int bottomCell = getRed(0,-1);\n        float bottomAnt = getGreen(0,-1);\n        float bottomDir = getBlue(0,-1);\n\n        int rightCell = getRed(1,0);\n        float rightAnt = getGreen(1,0);\n        float rightDir = getBlue(1,0);\n\n        //need to randomize order things are checked\n\n        if( (leftAnt == 0.2 && 0.75 < leftDir && leftDir < 1.0) || (bottomAnt == 0.2 && 0.5 < bottomDir && bottomDir < 0.75) ||\n          (rightAnt == 0.2 && 0.25 < rightDir && rightDir < 0.5) || (topAnt == 0.2 && 0.0 < topDir && topDir < 0.25)){ //above square is white ant and direction is down\n            gl_FragColor = vec4(cell, 0.2, newDir, 1.);\n        }\n  \n        else {\n          \n          float current = float( getRed(0, 0) );\n          gl_FragColor = vec4( vec3( current ), 1.0 );\n\n        }\n\n    }\n\n    //float current = float( getRed(0, 0) );\n    //gl_FragColor = vec4( vec3( current ), 1.0 );\n\n}"])
 
 let   initialized = false,
       sim = null
       
 const state = []
 
-function poke( x, y, value, texture ) {  
+
+function getRandomFloat(max) {
+  return Math.random() * Math.floor(max);
+}
+
+
+function pokeAnt( x, y, value, texture ) {  
   const gl = texture.gl
   texture.bind()
-  
+
   gl.texSubImage2D( 
     gl.TEXTURE_2D, 0, 
     x, y, 1, 1,
     gl.RGBA, gl.UNSIGNED_BYTE,
-    new Uint8Array([ value,value,value, 255 ])
+    new Uint8Array([ value,51,getRandomFloat(255), 255 ]) //store direction in blue value, ifAnt in green, ifAlive in red
   )
 }
 
 function setInitialState( width, height, tex ) {
   for( i = 0; i < width; i++ ) {
     for( j = 0; j < height; j++ ) {
-      if( Math.random() > .9) {
-        poke( i, j, 255, tex )
+      if( Math.random() > .9999) {
+        pokeAnt( i, j, 255, tex )
       }
     }
   }
 }
+
+//var ant1 = {x:200, y:500}
+//var ant2 = {x:1, y:1}
+var whiteDirs = [(-1,0),(0,-1),(1,0),(0,1)]
+var blackDirs = [(1,0),(0,-1),(-1,0),(0,1)]
 
 function init( gl ) {
   const w = gl.drawingBufferWidth
@@ -2086,24 +2097,34 @@ function init( gl ) {
   state[1] = fbo( gl, [w,h] )
   
   sim = createShader( gl, vert, gol )
-  
-  setInitialState( w,h, state[0].color[0] )
+
+  //create starting ants
+  //add to ants array
+  //ants.push(ant1, ant2)
+  pokeAnt(w/2, h/2, 255, state[0].color[0])
+  pokeAnt((w/2)+5, (h/2)-5, 255, state[0].color[0])
+  pokeAnt((w/2)-5, (h/2)-5, 255, state[0].color[0])
+  //setInitialState( w,h, state[0].color[0] )
   initialized = true
 }
 
 let current = 0
+var newDir = 0
 function tick( gl ) {
   const prevState = state[current]
   const curState = state[current ^= 1]
  
   curState.bind() // fbo
   sim.bind()      // shader
+
+  newDir = getRandomFloat(1)
   
   sim.uniforms.resolution = [ gl.drawingBufferWidth, gl.drawingBufferHeight ]
   sim.uniforms.state = prevState.color[0].bind()
+  sim.uniforms.newDir = newDir
   
   sim.attributes.a_position.location = 0
-  
+
   fillScreen( gl )
 }
 
@@ -2119,31 +2140,36 @@ toy( draw, (gl, shader) => {
   shader.uniforms.resolution = [ gl.drawingBufferWidth, gl.drawingBufferHeight ]
   shader.uniforms.uSampler = state[ 0 ].color[0].bind()
   shader.uniforms.time = count++
+
 })
 
-// var mouse = require('mouse-event')
+var mouse = require('mouse-event')
  
-// window.addEventListener('mousemove', function(ev) {
- 
-//   //console.log('element' + mouse.element(ev))
-//   console.log('x' + mouse.x(ev))
-//   console.log('y' + mouse.y(ev))
-//   mouseX = mouse.x(ev);
-//   mouseY = mouse.y(ev);
+let x,y
+window.addEventListener( 'mousemove', e => {
+  x = e.pageX
+  y = e.pageY
+  console.log(x)
+  console.log(y)
+})
 
-// })
-
-// window.addEventListener('click', function(ev){
-//   console.log('mouse has been clicked')
+window.addEventListener('click', function(ev){
+  console.log('mouse has been clicked')
+  // if(y < gl.drawingBufferHeight/2){
+  //   y = gl.drawingBufferHeight/2
+  // } else {
+  //   y = y + gl.drawingBufferHeight/2
+  // }
+  pokeAnt(x, y , 255, state[0].color[0])
   
-//   click = true;
-// })
+  click = true;
+})
 
 
 
 
 
-},{"a-big-triangle":5,"gl-fbo":19,"gl-shader":21,"gl-toy":29,"glslify":42}],5:[function(require,module,exports){
+},{"a-big-triangle":5,"gl-fbo":19,"gl-shader":21,"gl-toy":29,"glslify":42,"mouse-event":45}],5:[function(require,module,exports){
 'use strict'
 
 var weakMap      = typeof WeakMap === 'undefined' ? require('weak-map') : WeakMap
@@ -2174,7 +2200,7 @@ function createABigTriangle(gl) {
 
 module.exports = createABigTriangle
 
-},{"gl-buffer":15,"gl-vao":33,"weak-map":53}],6:[function(require,module,exports){
+},{"gl-buffer":15,"gl-vao":33,"weak-map":54}],6:[function(require,module,exports){
 var padLeft = require('pad-left')
 
 module.exports = addLineNumbers
@@ -2192,7 +2218,7 @@ function addLineNumbers (string, start, delim) {
   }).join('\n')
 }
 
-},{"pad-left":47}],7:[function(require,module,exports){
+},{"pad-left":48}],7:[function(require,module,exports){
 module.exports = function _atob(str) {
   return atob(str)
 }
@@ -2924,7 +2950,7 @@ function generateCWiseOp(proc, typesig) {
 }
 module.exports = generateCWiseOp
 
-},{"uniq":52}],12:[function(require,module,exports){
+},{"uniq":53}],12:[function(require,module,exports){
 "use strict"
 
 // The function below is called when constructing a cwise function object, and does the following:
@@ -3252,7 +3278,7 @@ function createBuffer(gl, data, type, usage) {
 
 module.exports = createBuffer
 
-},{"ndarray":46,"ndarray-ops":45,"typedarray-pool":51}],16:[function(require,module,exports){
+},{"ndarray":47,"ndarray-ops":46,"typedarray-pool":52}],16:[function(require,module,exports){
 module.exports = {
   0: 'NONE',
   1: 'ONE',
@@ -3592,7 +3618,7 @@ function createContext(canvas, opts, render) {
   }
 }
 
-},{"raf-component":48}],19:[function(require,module,exports){
+},{"raf-component":49}],19:[function(require,module,exports){
 'use strict'
 
 var createTexture = require('gl-texture2d')
@@ -4114,7 +4140,7 @@ function formatCompilerError(errLog, src, type) {
 }
 
 
-},{"add-line-numbers":6,"gl-constants/lookup":17,"glsl-shader-name":34,"sprintf-js":50}],21:[function(require,module,exports){
+},{"add-line-numbers":6,"gl-constants/lookup":17,"glsl-shader-name":34,"sprintf-js":51}],21:[function(require,module,exports){
 'use strict'
 
 var createUniformWrapper   = require('./lib/create-uniforms')
@@ -5129,7 +5155,7 @@ function createProgram(gl, vref, fref, attribs, locations) {
   return getCache(gl).getProgram(vref, fref, attribs, locations)
 }
 
-},{"./GLError":22,"gl-format-compiler-error":20,"weakmap-shim":56}],28:[function(require,module,exports){
+},{"./GLError":22,"gl-format-compiler-error":20,"weakmap-shim":57}],28:[function(require,module,exports){
 'use strict'
 
 var ndarray = require('ndarray')
@@ -5692,7 +5718,7 @@ function createTexture2D(gl) {
   throw new Error('gl-texture2d: Invalid arguments for texture2d constructor')
 }
 
-},{"ndarray":46,"ndarray-ops":45,"typedarray-pool":51}],29:[function(require,module,exports){
+},{"ndarray":47,"ndarray-ops":46,"typedarray-pool":52}],29:[function(require,module,exports){
 'use strict';
 
 var triangle = require('a-big-triangle');
@@ -6869,6 +6895,68 @@ function isSlowBuffer (obj) {
 }
 
 },{}],45:[function(require,module,exports){
+'use strict'
+
+function mouseButtons(ev) {
+  if(typeof ev === 'object') {
+    if('buttons' in ev) {
+      return ev.buttons
+    } else if('which' in ev) {
+      var b = ev.which
+      if(b === 2) {
+        return 4
+      } else if(b === 3) {
+        return 2
+      } else if(b > 0) {
+        return 1<<(b-1)
+      }
+    } else if('button' in ev) {
+      var b = ev.button
+      if(b === 1) {
+        return 4
+      } else if(b === 2) {
+        return 2
+      } else if(b >= 0) {
+        return 1<<b
+      }
+    }
+  }
+  return 0
+}
+exports.buttons = mouseButtons
+
+function mouseElement(ev) {
+  return ev.target || ev.srcElement || window
+}
+exports.element = mouseElement
+
+function mouseRelativeX(ev) {
+  if(typeof ev === 'object') {
+    if('offsetX' in ev) {
+      return ev.offsetX
+    }
+    var target = mouseElement(ev)
+    var bounds = target.getBoundingClientRect()
+    return ev.clientX - bounds.left
+  }
+  return 0
+}
+exports.x = mouseRelativeX
+
+function mouseRelativeY(ev) {
+  if(typeof ev === 'object') {
+    if('offsetY' in ev) {
+      return ev.offsetY
+    }
+    var target = mouseElement(ev)
+    var bounds = target.getBoundingClientRect()
+    return ev.clientY - bounds.top
+  }
+  return 0
+}
+exports.y = mouseRelativeY
+
+},{}],46:[function(require,module,exports){
 "use strict"
 
 var compile = require("cwise-compiler")
@@ -7331,7 +7419,7 @@ exports.equals = compile({
 
 
 
-},{"cwise-compiler":10}],46:[function(require,module,exports){
+},{"cwise-compiler":10}],47:[function(require,module,exports){
 var iota = require("iota-array")
 var isBuffer = require("is-buffer")
 
@@ -7682,7 +7770,7 @@ function wrappedNDArrayCtor(data, shape, stride, offset) {
 
 module.exports = wrappedNDArrayCtor
 
-},{"iota-array":43,"is-buffer":44}],47:[function(require,module,exports){
+},{"iota-array":43,"is-buffer":44}],48:[function(require,module,exports){
 /*!
  * pad-left <https://github.com/jonschlinkert/pad-left>
  *
@@ -7698,7 +7786,7 @@ module.exports = function padLeft(str, num, ch) {
   ch = typeof ch !== 'undefined' ? (ch + '') : ' ';
   return repeat(ch, num) + str;
 };
-},{"repeat-string":49}],48:[function(require,module,exports){
+},{"repeat-string":50}],49:[function(require,module,exports){
 /**
  * Expose `requestAnimationFrame()`.
  */
@@ -7738,7 +7826,7 @@ exports.cancel = function(id){
   cancel.call(window, id);
 };
 
-},{}],49:[function(require,module,exports){
+},{}],50:[function(require,module,exports){
 /*!
  * repeat-string <https://github.com/jonschlinkert/repeat-string>
  *
@@ -7810,7 +7898,7 @@ function repeat(str, num) {
   return res;
 }
 
-},{}],50:[function(require,module,exports){
+},{}],51:[function(require,module,exports){
 /* global window, exports, define */
 
 !function() {
@@ -8043,7 +8131,7 @@ function repeat(str, num) {
     /* eslint-enable quote-props */
 }(); // eslint-disable-line
 
-},{}],51:[function(require,module,exports){
+},{}],52:[function(require,module,exports){
 (function (global){
 'use strict'
 
@@ -8298,7 +8386,7 @@ exports.clearCache = function clearCache() {
 }
 
 }).call(this,typeof global !== "undefined" ? global : typeof self !== "undefined" ? self : typeof window !== "undefined" ? window : {})
-},{"bit-twiddle":8,"buffer":2,"dup":13}],52:[function(require,module,exports){
+},{"bit-twiddle":8,"buffer":2,"dup":13}],53:[function(require,module,exports){
 "use strict"
 
 function unique_pred(list, compare) {
@@ -8357,7 +8445,7 @@ function unique(list, compare, sorted) {
 
 module.exports = unique
 
-},{}],53:[function(require,module,exports){
+},{}],54:[function(require,module,exports){
 // Copyright (C) 2011 Google Inc.
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
@@ -9044,7 +9132,7 @@ module.exports = unique
   }
 })();
 
-},{}],54:[function(require,module,exports){
+},{}],55:[function(require,module,exports){
 var hiddenStore = require('./hidden-store.js');
 
 module.exports = createStore;
@@ -9065,7 +9153,7 @@ function createStore() {
     };
 }
 
-},{"./hidden-store.js":55}],55:[function(require,module,exports){
+},{"./hidden-store.js":56}],56:[function(require,module,exports){
 module.exports = hiddenStore;
 
 function hiddenStore(obj, key) {
@@ -9083,7 +9171,7 @@ function hiddenStore(obj, key) {
     return store;
 }
 
-},{}],56:[function(require,module,exports){
+},{}],57:[function(require,module,exports){
 // Original - @Gozola.
 // https://gist.github.com/Gozala/1269991
 // This is a reimplemented version (with a few bug fixes).
@@ -9114,4 +9202,4 @@ function weakMap() {
     }
 }
 
-},{"./create-store.js":54}]},{},[4]);
+},{"./create-store.js":55}]},{},[4]);
