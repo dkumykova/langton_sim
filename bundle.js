@@ -2057,6 +2057,12 @@ let   initialized = false,
       
 const state = []
 
+controls = function() {
+  this.click = 'Add more ants!';
+  this.reload = function(){location.reload();}
+};
+
+    
 
 function getRandomFloat(max) {
   return Math.random() * Math.floor(max);
@@ -2097,6 +2103,11 @@ function init( gl ) {
   state[1] = fbo( gl, [w,h] )
   
   sim = createShader( gl, vert, gol )
+
+  ui = new controls();
+  var gui = new dat.GUI();
+  gui.add(ui, 'click');
+  gui.add(ui, 'reload');
 
   //create starting ants
   //add to ants array
